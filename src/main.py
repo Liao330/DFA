@@ -1,6 +1,6 @@
 from Trainer import Trainer
 from utils.load_model import load_model
-from utils.save_exp_config_and_results import save_exp_config, save_exp_results
+from utils.save_exp_config_and_results import save_exp_config, save_exp_results, save_exp_plot
 from utils.visualize import imshow_grid
 from data.loaders import get_dataloader
 from utils.logger import ExperimentLogger
@@ -22,6 +22,7 @@ Logger = ExperimentLogger(LOG_DIR)
 # 初始化best acc和loss
 best_test_acc = 0
 best_test_loss = 100
+best_epoch = -999
 
 print(f"use the model {MODEL_CLASS}")
 for epoch in range(NUM_EPOCHS):
@@ -39,13 +40,19 @@ for epoch in range(NUM_EPOCHS):
     print(f"Test Loss: {test_loss:.4f} | Test Acc: {test_acc:.2f}%")
     print("-" * 50)
 
+    # 保存每轮的实验结果
+    save_exp_results(epoch, 'normal', test_acc, test_loss)
+
     # 更新最佳测试准确率和损失值
+    if max(best_test_acc, test_acc) != best_test_acc:
+        best_epoch = epoch
     best_test_acc = max(best_test_acc, test_acc)
     best_test_loss = min(best_test_loss, test_loss)
 
-# 保存本次实验的配置信息和实验结果
+# 保存本次实验的配置信息和最佳实验结果
 save_exp_config()
-save_exp_results(trainer, best_test_acc, best_test_loss)
+save_exp_plot(trainer)
+save_exp_results(best_epoch, 'best', best_test_acc, best_test_loss)
 
 # 关闭Logger
 Logger.close()

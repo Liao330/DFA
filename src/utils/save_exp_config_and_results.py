@@ -19,14 +19,20 @@ def save_exp_config():
         f.write(f"DATASET_PATH: {DATASET_PATH}\n")
         f.write(f"DATA_ROOT: {DATA_ROOT}\n")
 
-def save_exp_results(trainer:Trainer, best_test_acc, best_test_loss):
+def save_exp_plot(trainer:Trainer):
     # 保存训练历史图
     loss_plot_path = os.path.join(EXP_DIR, "loss_history.png")
     acc_plot_path = os.path.join(EXP_DIR, "acc_history.png")
     trainer.plot_or_save_history(loss_plot_path, acc_plot_path)
 
+def save_exp_results(epoch, flag, test_acc, test_loss):
     # 保存实验结果
     result_path = os.path.join(EXP_DIR, "results.txt")
-    with open(result_path, "w") as f:
-        f.write(f"Best Test Loss: {best_test_loss:.4f}\n")
-        f.write(f"Best Test Accuracy: {best_test_acc:.2f}%\n")
+    with open(result_path, "a") as f:
+        if flag == 'best':
+            f.write("-"*50)
+            f.write(f"Best Test Loss: {test_loss:.4f}\n")
+            f.write(f"Best Test Accuracy: {test_acc:.2f}%\n")
+        elif flag == 'normal':
+            f.write(f"The Epoch {epoch}'s Test Loss: {test_loss:.4f}\n")
+            f.write(f"The Epoch {epoch}'s Test Accuracy: {test_acc:.2f}%\n")

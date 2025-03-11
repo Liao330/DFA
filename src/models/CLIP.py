@@ -25,18 +25,18 @@ class CLIP(nn.Module):
         pred = self.head(features)
         # print(f"222  {pred.shape}") # [64, 2]
         # get the probability of the pred
-        prob = torch.softmax(pred, dim=1)[:, 1]
-        # print(f"333  {prob.shape}") # [64]
+        prob = torch.softmax(pred, dim=1)
+        # print(f"333  {prob.shape}") # [64, 2]
         # build the prediction dict for each output
         pred_dict = {'cls': pred, 'prob': prob, 'feat': features}
         labels = pred_dict['prob']
         # print(f"444  {labels.shape}") # [64]
         # print(f"555  {pred_dict['feat'].shape}") # [64， 1024]
-
+        labels = labels.type(torch.float32) # expect float type
         return labels
 
-## 测试
+# # 测试
 # model = CLIP().cuda()
 # inputs = torch.randn(64,3,224,224).cuda()
 # out = model(inputs)
-# print(out.shape)
+# print(out)

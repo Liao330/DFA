@@ -1,7 +1,7 @@
 import torch
 from tqdm import tqdm
 from config import EXP_DIR
-from src.utils.visualize import plot_loss_curve, plot_acc_curve
+from utils.visualize import plot_loss_curve, plot_acc_curve
 
 
 # 封装Train类
@@ -27,8 +27,8 @@ class Trainer:
         with tqdm(self.train_loader, desc="Training", unit="batch") as pbar:
             for inputs, labels in pbar:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
-
                 outputs = self.model(inputs)
+
                 loss = self.criterion(outputs, labels)
                 self.optimizer.zero_grad()
                 loss.backward()

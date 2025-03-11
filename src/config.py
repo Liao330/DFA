@@ -13,7 +13,7 @@ STD = [0.229, 0.224, 0.225]
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # 模型配置
-MODEL_CLASS = 'ResNext' # 与src/models中的文件名保持一致
+MODEL_CLASS = 'SimpleCNN' # 与src/models中的文件名保持一致
 NUM_EPOCHS = 3
 
 # 训练配置

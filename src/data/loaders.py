@@ -1,8 +1,7 @@
-import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from src.data.datasets import BaseDataset
 from src.data.transforms import build_transforms
-from ..config import *
+from src.config import *
 import os
 
 def get_dataloader():
@@ -19,7 +18,7 @@ def get_dataloader():
     # 划分数据集
     train_size = int(0.8 * len(custom_data))
     test_size = len(custom_data) - train_size
-    train_dataset, test_dataset = torch.utils.data.random_split(
+    train_dataset, test_dataset = random_split(
         custom_data, [train_size, test_size]
     )
     test_dataset.dataset.transform = test_transform

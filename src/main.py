@@ -1,10 +1,9 @@
-from src.Trainer import Trainer
-from src.models.SimpleCNN import SimpleCNN
-from src.utils.load_model import load_model
-from src.utils.save_exp_config_and_results import save_exp_config, save_exp_results
-from src.utils.visualize import imshow_grid
-from src.data.loaders import get_dataloader
-from src.utils.logger import ExperimentLogger
+from Trainer import Trainer
+from utils.load_model import load_model
+from utils.save_exp_config_and_results import save_exp_config, save_exp_results
+from utils.visualize import imshow_grid
+from data.loaders import get_dataloader
+from utils.logger import ExperimentLogger
 from config import *
 
 # 获取dataloader
@@ -24,15 +23,16 @@ Logger = ExperimentLogger(LOG_DIR)
 best_test_acc = 0
 best_test_loss = 100
 
+print(f"use the model {MODEL_CLASS}")
 for epoch in range(NUM_EPOCHS):
-    print(f"第{epoch + 1} 轮开始：")
+    print(f"The epoch {epoch + 1} begin:")
     train_loss, train_acc = trainer.train_epoch()
-    Logger.log_metrics(Logger.todict(train_loss), epoch)
-    Logger.log_metrics(Logger.todict(train_acc), epoch)
+    Logger.log_metrics({'train_loss':train_loss}, epoch)
+    Logger.log_metrics({'train_loss':train_loss}, epoch)
 
     test_loss, test_acc = trainer.test_epoch()
-    Logger.log_metrics(Logger.todict(test_loss), epoch)
-    Logger.log_metrics(Logger.todict(test_acc), epoch)
+    Logger.log_metrics({'test_loss':test_loss}, epoch)
+    Logger.log_metrics({'test_acc':test_acc}, epoch)
 
     print(f"\nEpoch [{epoch + 1}/{NUM_EPOCHS}]")
     print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%")

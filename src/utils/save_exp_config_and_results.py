@@ -1,7 +1,5 @@
-from datetime import datetime
-
-from ..Trainer import Trainer
-from ..config import *
+from src.Trainer import Trainer
+from src.config import *
 
 def save_exp_config():
     # 保存配置文件内容到实验目录
@@ -23,8 +21,9 @@ def save_exp_config():
 
 def save_exp_results(trainer:Trainer, best_test_acc, best_test_loss):
     # 保存训练历史图
-    plot_path = os.path.join(EXP_DIR, "training_history.png")
-    trainer.plot_or_save_history(save_path=plot_path)
+    loss_plot_path = os.path.join(EXP_DIR, "loss_history.png")
+    acc_plot_path = os.path.join(EXP_DIR, "acc_history.png")
+    trainer.plot_or_save_history(loss_plot_path, acc_plot_path)
 
     # 保存实验结果
     result_path = os.path.join(EXP_DIR, "results.txt")

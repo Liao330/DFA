@@ -1,8 +1,7 @@
 import torch
-from matplotlib import pyplot as plt
 from tqdm import tqdm
-
-from src.config import EXP_DIR
+from config import EXP_DIR
+from src.utils.visualize import plot_loss_curve, plot_acc_curve
 
 
 # 封装Train类
@@ -55,12 +54,16 @@ class Trainer:
                 pbar.set_postfix({
                     'loss': running_loss / (pbar.n + 1e-5),
                     'acc': 100 * correct / total
-                })
+                }, refresh=False)
 
         epoch_loss = running_loss / len(self.train_loader)
+        # print(f"epoch_loss: {epoch_loss}")
         epoch_acc = 100 * correct / total
+        # print(f"epoch_acc: {epoch_acc}")
         self.history['train_loss'].append(epoch_loss)
         self.history['train_acc'].append(epoch_acc)
+        # print(f"self.history['train_loss']: {self.history['train_loss']}")
+        # print(f"self.history['train_acc']: {self.history['train_acc']}")
         return epoch_loss, epoch_acc
 
     def test_epoch(self):
@@ -70,16 +73,22 @@ class Trainer:
         total = 0
 
         with torch.no_grad():
-            for inputs, labels in self.test_loader:
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
+            with tqdm(self.test_loader, desc="Testing", unit="batch") as pbar:
+                for inputs, labels in pbar:
+                    inputs, labels = inputs.to(self.device), labels.to(self.device)
 
-                outputs = self.model(inputs)
-                loss = self.criterion(outputs, labels)
+                    outputs = self.model(inputs)
+                    loss = self.criterion(outputs, labels)
 
-                running_loss += loss.item()
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+                    running_loss += loss.item()
+                    _, predicted = torch.max(outputs.data, 1)
+                    total += labels.size(0)
+                    correct += (predicted == labels).sum().item()
+                    # 实时更新进度条信息
+                    pbar.set_postfix({
+                        'loss': running_loss / (pbar.n + 1e-5),
+                        'acc': 100 * correct / total
+                    }, refresh=False)
 
         epoch_loss = running_loss / len(self.test_loader)
         epoch_acc = 100 * correct / total
@@ -91,25 +100,19 @@ class Trainer:
             torch.save(self.model.state_dict(), f'{EXP_DIR}/best_model.pth')
         return epoch_loss, epoch_acc
 
-    def plot_or_save_history(self, save_path):
-        plt.figure(figsize=(12, 5))
+    def plot_or_save_history(self, loss_plot_path, acc_plot_path):
+        # 绘制损失曲线
+        plot_loss_curve(self.history['train_loss'], self.history['test_loss'], loss_plot_path)
+        # 绘制准确率曲线
+        plot_acc_curve(self.history['train_acc'], self.history['test_acc'], acc_plot_path)
 
-        plt.subplot(1, 2, 1)
-        plt.plot(self.history['train_loss'], label='Train Loss')
-        plt.plot(self.history['test_loss'], label='Test Loss')
-        plt.title('Loss Curve')
-        plt.xlabel('Epochs')
-        plt.ylabel('Loss')
-        plt.legend()
 
-        plt.subplot(1, 2, 2)
-        plt.plot(self.history['train_acc'], label='Train Acc')
-        plt.plot(self.history['test_acc'], label='Test Acc')
-        plt.title('Accuracy Curve')
-        plt.xlabel('Epochs')
-        plt.ylabel('Accuracy (%)')
-        plt.legend()
-
-        plt.tight_layout()
-        plt.savefig(save_path)
-        # plt.show()
+# # test
+# train_loss = [0.1, 0.08, 0.06]
+# test_loss = [0.15, 0.12, 0.1]
+# train_acc = [95, 96, 97]
+# test_acc = [94, 95, 96]
+# # 绘制损失曲线
+# plot_loss_curve(train_loss, test_loss, 'loss_plot_path')
+# # 绘制准确率曲线
+# plot_acc_curve(train_acc, test_acc, 'acc_plot_path')

@@ -21,9 +21,5 @@ class ExperimentLogger:
         with open(config_path, 'w') as f:
             yaml.dump(config, f)
 
-    def todict(self, metrics):
-        # 使用 todict 函数进行转换
-        return {k: v for k, v in metrics.items()}
-
     def close(self):
         self.writer.close()

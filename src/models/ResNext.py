@@ -4,7 +4,7 @@ from torchvision import models
 
 # 类名与文件名保持一致
 class ResNext(nn.Module):
-    def __init__(self, num_classes=2, latent_dim=1536, lstm_layers=1, hidden_dim=2048, bidirectional=False):
+    def __init__(self, num_classes=2, hidden_dim=2048):
         super(ResNext, self).__init__()
         # model = models.convnext_large(pretrained=True)
         model = models.resnext50_32x4d(pretrained=True)  # Residual Network CNN

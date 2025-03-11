@@ -22,3 +22,29 @@ def imshow_grid(loader, num_images=8):
         ax.axis('off')
     plt.tight_layout()
     plt.show()
+
+def plot_loss_curve(train_loss, test_loss, loss_plot_path):
+    plt.figure(figsize=(6, 4))
+    plt.plot(train_loss, label='Train Loss')
+    plt.plot(test_loss, label='Test Loss')
+    plt.title('Loss Curve')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig(loss_plot_path)  # 保存损失曲线图
+    plt.close()  # 关闭当前图形，以免影响下一个图形的显示
+
+def plot_acc_curve(train_acc, test_acc, acc_plot_path):
+    plt.figure(figsize=(6, 4))
+    plt.plot(train_acc, label='Train Acc')
+    plt.plot(test_acc, label='Test Acc')
+    plt.title('Accuracy Curve')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy (%)')
+    plt.legend()
+    plt.tight_layout()
+    # plt.show()
+    plt.savefig(acc_plot_path)  # 保存准确率曲线图
+    plt.close()  # 关闭当前图形

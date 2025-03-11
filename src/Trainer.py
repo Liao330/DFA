@@ -2,6 +2,8 @@ import torch
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
+from src.config import EXP_DIR
+
 
 # 封装Train类
 class Trainer:
@@ -86,10 +88,10 @@ class Trainer:
         # 在test_epoch方法中添加
         if epoch_acc > max(self.history['test_acc']):
             # 后续保存到特定文件夹中
-            torch.save(self.model.state_dict(), 'best_model.pth')
+            torch.save(self.model.state_dict(), f'{EXP_DIR}/best_model.pth')
         return epoch_loss, epoch_acc
 
-    def plot_history(self):
+    def plot_or_save_history(self, save_path):
         plt.figure(figsize=(12, 5))
 
         plt.subplot(1, 2, 1)
@@ -109,4 +111,5 @@ class Trainer:
         plt.legend()
 
         plt.tight_layout()
-        plt.show()
+        plt.savefig(save_path)
+        # plt.show()

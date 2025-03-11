@@ -25,8 +25,12 @@ LEARNING_RATE = 1e-4
 DATASET_PATH = '../global_labels.csv'
 DATA_ROOT = '../'
 
-# 日志配置
+# tensorboard日志配置
 now = datetime.now()
 idx = f"{now.year}{now.month:02d}{now.day:02d}{now.hour:02d}{now.minute:02d}"
 LOG_DIR = f'logs/{MODEL_CLASS}/experiment{idx}'
 
+# 实验记录配置
+timestamp = f"{now.year}{now.month:02d}{now.day:02d}{now.hour:02d}{now.minute:02d}"
+EXP_DIR = f"../experiments/exp_{MODEL_CLASS}_{timestamp}"
+os.makedirs(EXP_DIR, exist_ok=True)

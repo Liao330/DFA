@@ -1,0 +1,26 @@
+DFDC
+   |____________test                                     数量为:132116
+Celeb-DF-v1
+   |____________Celeb-real                               数量为:5004
+   |____________Celeb-synthesis                          数量为:25362
+   |____________YouTube-real                             数量为:7946
+Celeb-DF-v2
+   |____________Celeb-real                               数量为:18650
+   |____________Celeb-synthesis                          数量为:179777
+   |____________YouTube-real                             数量为:9524
+DFDCP
+   |____________method_A                                 数量为:110511
+   |____________method_B                                 数量为:4441
+   |____________original_videos                          数量为:28326
+UADFV
+   |____________fake                                     数量为:1551
+   |____________real                                     数量为:1548
+FaceForensics++
+   |____________manipulated_sequences\DeepFakeDetection  数量为:91800
+   |____________manipulated_sequences\Deepfakes          数量为:31843
+   |____________manipulated_sequences\Face2Face          数量为:31949
+   |____________manipulated_sequences\FaceShifter        数量为:31924
+   |____________manipulated_sequences\FaceSwap           数量为:31954
+   |____________manipulated_sequences\NeuralTextures     数量为:31931
+   |____________original_sequences\actors                数量为:10741
+   |____________original_sequences\youtube               数量为:31949

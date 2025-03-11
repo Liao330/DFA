@@ -1,0 +1,32 @@
+import os
+from datetime import datetime
+
+import torch
+from torch import nn
+
+# 基本配置
+BATCH_SIZE = 64
+NUM_WORKERS = 0
+IMAGE_SIZE = 224
+MEAN = [0.485, 0.456, 0.406]
+STD = [0.229, 0.224, 0.225]
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+# 模型配置
+MODEL_CLASS = 'ResNext' # 与src/models中的文件名保持一致
+NUM_EPOCHS = 3
+
+# 训练配置
+CRITERION = nn.CrossEntropyLoss()
+OPTIMIZER_CLASS = 'Adam'
+LEARNING_RATE = 1e-4
+
+# 数据集配置 相对于运行主文件main.py
+DATASET_PATH = '../global_labels.csv'
+DATA_ROOT = '../'
+
+# 日志配置
+now = datetime.now()
+idx = f"{now.year}{now.month:02d}{now.day:02d}{now.hour:02d}{now.minute:02d}"
+LOG_DIR = f'logs/{MODEL_CLASS}/experiment{idx}'
+

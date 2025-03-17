@@ -1,3 +1,12 @@
+const datasets = [
+  { name: 'FF++', real: 1000, fake: 4000, total: 5000 },
+  { name: 'DFDC-P', real: 1131, fake: 4119, total: 5250 },
+  { name: 'DFDC', real: 1435, fake: 1435, total: 2870},
+  { name: 'CelebDF-v1', real: 408, fake: 795, total: 1203 },
+  { name: 'CelebDF-v2', real: 590, fake: 5639, total: 6229 },
+  { name: 'UADFV', real: 49, fake: 49, total: 98 } # 没加这UADFV
+];
+
 DFDC
    |____________test                                     数量为:132116
 Celeb-DF-v1

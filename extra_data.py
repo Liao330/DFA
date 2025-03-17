@@ -5,10 +5,14 @@
 
 import os
 import csv
+import json
+
+import pandas as pd
 
 # 配置参数
 root_dir = r"E:\github_code\Unnamed1\dataset\processed"  # 数据集根目录
 output_csv = r"E:\github_code\Unnamed1\global_labels.csv"  # 输出CSV文件路径
+# output_csv = r"E:\github_code\Unnamed1\DFDC_labels.csv"  # 输出CSV文件路径
 output_txt = r"E:\github_code\Unnamed1\different_dataset_photos_nums.txt"  # 输出TXT文件路径
 
 
@@ -53,6 +57,8 @@ def process_dataset(root_dir, output_csv, output_txt, current_dataset):
                         label = "REAL"
                     elif "original_sequences" in full_path:
                         label = "REAL"
+                    elif "real" in full_path:
+                        label = "REAL"
                     elif "fake" in full_path:
                         label = "FAKE"
                     elif "method_A" in full_path:
@@ -63,6 +69,8 @@ def process_dataset(root_dir, output_csv, output_txt, current_dataset):
                         label = "FAKE"
                     elif "manipulated_sequences" in full_path:
                         label = "FAKE"
+                    elif "fake" in full_path:
+                        label = 'FAKE'
                     else:
                         label = "UNKNOWN"  # 安全兜底
 
@@ -82,24 +90,82 @@ def process_dataset(root_dir, output_csv, output_txt, current_dataset):
                         photos_nums[subdir] = 0
                     photos_nums[subdir] += 1
 
-    # 写入TXT文件 # 使用 'a' 模式进行追加写入
-    with open(output_txt, 'a', encoding='utf-8') as txtfile:
-        txtfile.write(f"{current_dataset}\n")
-        for subdir, num in photos_nums.items():
-            txtfile.write("   |____________")
-            txtfile.write(f"{subdir:40} 数量为:{num}\n")
-        print("\n")
+    # # 写入TXT文件 # 使用 'a' 模式进行追加写入
+    # with open(output_txt, 'a', encoding='utf-8') as txtfile:
+    #     txtfile.write(f"{current_dataset}\n")
+    #     for subdir, num in photos_nums.items():
+    #         txtfile.write("   |____________")
+    #         txtfile.write(f"{subdir:40} 数量为:{num}\n")
+    #     print("\n")
 
     print(f"CSV文件已生成：{os.path.abspath(output_csv)}")
     print(f"TXT文件已生成：{os.path.abspath(output_txt)}")
 
+def process_DFDC():
+    with open('dataset/processed/DFDC/test/metadata.json', 'r') as file:
+        data = json.load(file)
+    # 提取视频名称和真假类别
+    output_lines = ["videoname,label"]
+    for video_name, video_info in data.items():
+        video_name = video_name.split('.')[0]  # 去掉文件扩展名
+        label = "FAKE" if video_info["is_fake"] == 1 else "REAL"
+        output_lines.append(f"{video_name},{label}")
+
+    # 将结果保存为CSV格式的字符串
+    output_csv = "\n".join(output_lines)
+    # print(output_csv)
+
+    with open('output.csv', 'w') as file:
+        file.write(output_csv)
+
+    # 读取CSV文件
+    df_origin = pd.read_csv('DFDC_labels.csv')
+    df_output = pd.read_csv('output.csv')
+    out_list = df_output['videoname']
+    paths = df_origin['path'][0:].tolist()
+    # for p in paths:
+    #     a = p.split('/')
+    #     print(a[-2])
+    labels = df_origin['label'][0:].tolist()
+    new_labels = []
+    # print(paths)
+    # print(labels)
+    for index, row in df_output.iterrows():
+        videoname = row['videoname']
+        label = row['label']
+        for p in paths:
+            a = p.split('/')
+            b = a[-2]
+            # print(a[-2])
+            if b == videoname:
+                new_labels.append(label)
+                # print(new_labels) ['REAL','FAKE','REAL'...]
+    print(len(new_labels))
+    if len(new_labels) == len(paths):
+        # 创建一个新的 DataFrame
+        new_df = pd.DataFrame({
+            'path': paths,
+            'label': new_labels
+        })
+
+        # 保存为新的 CSV 文件
+        new_df.to_csv('new_labels.csv', index=False)
+        print("新的CSV文件已生成，文件名为 'new_labels.csv'")
+    else:
+        print("Error: new_labels 的长度与 df_origin['path'] 的长度不一致，请检查代码逻辑。")
+
 
 # 数据集 没有DFDC 因为拿DFDC做测试集
-# list = ['DFDC'] # 对DFDC测试集只做数量统计
-list = ['Celeb-DF-v1','Celeb-DF-v2','DFDCP','UADFV','FaceForensics++']
-for current_dataset in list:
-    print(f"\n正在处理数据集{current_dataset}")
-    current_dir = root_dir + '\\' + current_dataset
-    print(current_dir)
-    # 执行处理
-    process_dataset(current_dir, output_csv, output_txt, current_dataset)
+# list = ['UADFV'] # DFDC用于测试泛化能力 'UADFV',
+# list = ['Celeb-DF-v1','Celeb-DF-v2','DFDCP','FaceForensics++']
+# for current_dataset in list:
+#     print(f"\n正在处理数据集{current_dataset}")
+#     current_dir = root_dir + '\\' + current_dataset
+#     print(current_dir)
+#     # 执行处理
+#     process_dataset(current_dir, output_csv, output_txt, current_dataset)
+
+# process_DFDC()
+process_dataset(r"E:\github_code\Unnamed1\dataset\processed\UADFV", r"E:\github_code\Unnamed1\UADFV_labels.csv", None, None)
+
+

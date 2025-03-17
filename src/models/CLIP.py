@@ -1,3 +1,6 @@
+"""
+    由实验结果表明，此CLIP的acc一直都是83.4，不适合我们的任务
+"""
 import torch
 import torch.nn as nn
 from src.utils.download_online_models import *
@@ -10,17 +13,14 @@ class CLIP(nn.Module):
         super(CLIP, self).__init__()
         _, self.backbone = get_clip_visual()
         # _, self.backbone = get_vit_model() # vit model
-        self.linear = nn.Linear(768, 1024)
-        self.head = nn.Linear(1024, 2)  # for CLIP-large-14
-        # self.head = nn.Linear(768, 2) # for CLIP-base-16
+        # self.head = nn.Linear(1024, 2)  # for CLIP-large-14
+        self.head = nn.Linear(768, 2) # for CLIP-base-16
 
     def forward(self, img, inference=False):
         # get the features by backbone
         features = self.backbone(img)['pooler_output']
         # print(f"000  {features.shape}") # [64, 768]
         # change the out_channels by linear
-        features = self.linear(features)
-        # print(f"111  {features.shape}") # [64, 1024]
         # get the prediction by head
         pred = self.head(features)
         # print(f"222  {pred.shape}") # [64, 2]

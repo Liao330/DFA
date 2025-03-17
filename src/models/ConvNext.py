@@ -2,10 +2,14 @@ import torch
 from torch import nn
 from torchvision import models
 
+from src.config import  NUM_CLASS
+
+
 # 类名与文件名保持一致
 class ConvNext(nn.Module):
-    def __init__(self, num_classes=2, hidden_dim=2048):
+    def __init__(self):
         super(ConvNext, self).__init__()
+        num_classes = NUM_CLASS
         model = models.convnext_large(pretrained=True)
         # model = models.resnext50_32x4d(pretrained=True)  # Residual Network CNN
         model = model.cuda()
@@ -13,7 +17,7 @@ class ConvNext(nn.Module):
         # self.lstm = nn.LSTM(latent_dim, hidden_dim, lstm_layers, bidirectional)
         self.relu = nn.LeakyReLU()
         self.dp = nn.Dropout(0.4)
-        self.linear1 = nn.Linear(hidden_dim, num_classes)
+        self.linear1 = nn.Linear(1536, num_classes)
         self.avgpool = nn.AdaptiveAvgPool2d(1)
 
     def forward(self, x):

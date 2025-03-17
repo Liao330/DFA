@@ -2,11 +2,15 @@ import torch
 from torch import nn
 from torchvision import models
 
+from src.config import CRITERION, NUM_CLASS
+
+
 # 类名与文件名保持一致
 class ResNext(nn.Module):
-    def __init__(self, num_classes=2, hidden_dim=2048):
+    def __init__(self, hidden_dim=2048):
         super(ResNext, self).__init__()
         # model = models.convnext_large(pretrained=True)
+        num_classes = NUM_CLASS
         model = models.resnext50_32x4d(pretrained=True)  # Residual Network CNN
         model = model.cuda()
         self.model = nn.Sequential(*list(model.children())[:-2])

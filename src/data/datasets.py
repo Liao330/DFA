@@ -37,8 +37,8 @@ class BaseDataset(Dataset):
         # 标签转换
         label = self.label_map[label_str]
         # 加载实际图像数据
-        # image = Image.open(img_name).convert('RGB')
-        image = Image.open(img_name)
+        image = Image.open(img_name).convert('RGB')
+        # image = Image.open(img_name)
         if self.transform:
             image = self.transform(image)
         return image, label  # 返回图像张量和标签

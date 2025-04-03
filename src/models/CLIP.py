@@ -1,5 +1,5 @@
 """
-    由实验结果表明，此CLIP的acc一直都是83.4，不适合我们的任务
+    由实验结果表明，此CLIP的acc一直都是83.4，不适合我们的任务，需要对其进行改进
 """
 import torch
 import torch.nn as nn

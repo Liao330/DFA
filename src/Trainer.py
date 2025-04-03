@@ -1,77 +1,151 @@
+import sys
+
 import numpy as np
 import torch
+from sklearn import metrics
 from sklearn.metrics import confusion_matrix, roc_curve, auc, f1_score, precision_score, recall_score
 from tqdm import tqdm
-from src.config import EXP_DIR, MODEL_CLASS, WEIGHTS, CRITERION
+from src.config import EXP_DIR, WEIGHTS, CRITERION, SEED, GPU_COUNT, LEARNING_RATE, is_DDP
 from src.utils.visualize import plot_loss_curve, plot_acc_curve, plot_confusion_matrix, plot_f1_score, plot_roc
 
 
 # 封装Train类
 class Trainer:
-    def __init__(self, model, train_loader, test_loader, criterion, optimizer, device='cuda'):
+    def __init__(self, model, train_loader, test_loader, criterion, optimizer, device, device_ids, rank):
         self.model = model.to(device)
+        self.model_class = model._get_name()
+        self.set_seed(SEED)
         self.train_loader = train_loader
         self.test_loader = test_loader
         self.device = device
+        # self.device = f'cuda:{device_ids[0]}' # 多gpu
+        self.device_ids = device_ids
+        self.rank = rank
         if criterion == 'CrossEntropyLoss':
             self.criterion = torch.nn.CrossEntropyLoss(WEIGHTS)
-        elif criterion == 'BCEWithLogitsLoss':
-            self.criterion = torch.nn.BCEWithLogitsLoss(WEIGHTS)
         if optimizer == "Adam":
-            self.optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
+            self.optimizer = torch.optim.Adam(model.parameters(), LEARNING_RATE, weight_decay=1e-4)
         elif optimizer == "SGD":
-            self.optimizer = torch.optimizer.SGD(model.parameters(), lr=1e-4)
+            self.optimizer = torch.optimizer.SGD(model.parameters(), LEARNING_RATE, weight_decay=1e-4)
         self.history = {'train_loss': [], 'train_acc': [], 'test_loss': [], 'test_acc': [],
                         }
+
+    def set_seed(self, seed):
+        """
+        Set the random seed for reproducibility.
+
+        Args:
+            seed (int): The seed value.
+        """
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+    def _get_raw_model(self):
+        """获取原始模型（兼容 DDP 和非 DDP 模式）"""
+        if isinstance(self.model, (torch.nn.parallel.DistributedDataParallel, torch.nn.DataParallel)):
+            return self.model.module
+        return self.model
 
     def train_epoch(self):
         self.model.train()
         running_loss = 0.0
         correct = 0
         total = 0
+        total_batches = len(self.train_loader)
+        test_points = [0.50, 1.0]
+        tested_points = set()
+        test_metrics = {}
 
-        with tqdm(self.train_loader, desc="Training", unit="batch") as pbar:
-            for inputs, labels in pbar:
-                inputs, labels = inputs.to(self.device), labels.to(self.device)
-                outputs = self.model(inputs)
-                # print(outputs.shape, outputs[:5])
-                # print(labels.shape, labels[:5])
-                if CRITERION == 'BCEWithLogitsLoss':
-                    labels = labels.unsqueeze(1).float()
-                loss = self.criterion(outputs, labels)
-                self.optimizer.zero_grad()
-                loss.backward()
-                self.optimizer.step()
+        scaler = torch.amp.GradScaler(self.device)
 
-                # 自动混合精度， 但效果不是很好
-                # scaler = torch.amp.GradScaler(self.device)
-                # with torch.amp.autocast(self.device):
-                #     outputs = self.model(inputs)
-                #     loss = self.criterion(outputs, labels)
-                # self.optimizer.zero_grad()
-                # scaler.scale(loss).backward()
-                # scaler.step(self.optimizer)
-                # scaler.update()
+        # 在 DDP 模式下，只在 rank 0 显示进度条
+        pbar = tqdm(self.train_loader, desc="Training", unit="batch", disable=self.device != 'cuda:0' and is_DDP)
+        for batch_idx, data_dict in enumerate(pbar):
+            # print(f"Rank {self.device}: Processing batch {batch_idx + 1}/{total_batches}")
+            progress = (batch_idx + 1) / total_batches
 
-                # 统计指标
-                running_loss += loss.item()
-                _, predicted = torch.max(outputs.data, 1)
-                total += labels.size(0)
-                correct += (predicted == labels).sum().item()
+            for point in test_points:
+                if progress >= point and point not in tested_points:
+                    print(f"\nRank {self.device}: Reached {point * 100}% progress, running test...")
+                    test_metrics, model_path = self.test_epoch()
+                    if self.device == 'cuda:0' and is_DDP:
+                        print(f"Test at {point * 100}% progress: Loss: {test_metrics['loss']:.4f}, "
+                              f"Acc: {test_metrics['acc']:.2f}%, "
+                              f"Precision: {test_metrics['precision']:.4f}, "
+                              f"Recall: {test_metrics['recall']:.4f}, "
+                              f"F1: {test_metrics['test_f1']:.4f}, "
+                              f"AUC: {test_metrics['roc_auc']:.4f}")
+                    if model_path:
+                        print(f"Model saved at: {model_path}")
+                    tested_points.add(point)
 
-                # 实时更新进度条信息
-                pbar.set_postfix({
-                    'loss': running_loss / (pbar.n + 1e-5),
-                    'acc': 100 * correct / total
-                }, refresh=False)
+            self.model.train()
+
+            img_inputs, lm_inputs, labels = data_dict.values()
+            data_dict = {key: value.to(self.device) for key, value in data_dict.items()}
+            img_inputs, lm_inputs, labels = img_inputs.to(self.device), lm_inputs.to(self.device), labels.to(
+                self.device)
+            # print(
+            #     f"Rank {self.device}: Data loaded: img_inputs shape {img_inputs.shape}, lm_inputs shape {lm_inputs.shape}, labels shape {labels.shape}")
+            # data_dict = {key: value.to(self.device) for key, value in data_dict.items()}
+            # img_inputs, lm_inputs, labels = img_inputs.to(self.device), lm_inputs.to(self.device), labels.to(
+            #     self.device)
+
+            if torch.isnan(img_inputs).any() or torch.isinf(img_inputs).any():
+                print(f"Rank {self.device}: Warning: NaN or Inf detected in images")
+            if torch.isnan(lm_inputs).any() or torch.isinf(lm_inputs).any():
+                print(f"Rank {self.device}: Warning: NaN or Inf detected in landmarks")
+
+            self.optimizer.zero_grad()
+            with torch.amp.autocast(self.device):
+                if self.model_class == 'DFACLIP':
+                    # print(f"Rank {self.device}: Starting model forward pass...")
+                    pred_dict = self.model(data_dict)
+                    # print(f"Rank {self.device}: Forward pass completed.")
+                    outputs = pred_dict['cls']
+                    loss_dict = self._get_raw_model().get_losses(data_dict, pred_dict)
+                    loss = loss_dict['overall']
+                else:
+                    outputs = self.model(img_inputs)
+                    loss = self.criterion(outputs, labels)
+
+            if torch.isnan(outputs).any() or torch.isinf(outputs).any():
+                print(f"Rank {self.device}: Warning: NaN or Inf detected in model outputs")
+            if torch.isnan(loss) or torch.isinf(loss):
+                print(f"Rank {self.device}: Warning: NaN or Inf detected in loss")
+                break
+
+            scaler.scale(loss).backward()
+            scaler.step(self.optimizer)
+            scaler.update()
+
+            running_loss += loss.item()
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+            pbar.set_postfix({
+                'loss': running_loss / (pbar.n + 1e-5),
+                'acc': 100 * correct / total
+            })
+            sys.stdout.flush()
 
         epoch_loss = running_loss / len(self.train_loader)
         epoch_acc = 100 * correct / total
         self.history['train_loss'].append(epoch_loss)
         self.history['train_acc'].append(epoch_acc)
-        return epoch_loss, epoch_acc
+        train_dict = {
+            'epoch_loss': epoch_loss,
+            'epoch_acc': epoch_acc
+        }
+        return train_dict, test_metrics, model_path
 
     def test_epoch(self):
+        # 确保测试时只在 rank 0 保存模型和记录日志
         self.model.eval()
         running_loss = 0.0
         correct = 0
@@ -79,27 +153,47 @@ class Trainer:
         all_true = []
         all_pred = []
         all_prob = []
-        with torch.no_grad():
-            with tqdm(self.test_loader, desc="Testing", unit="batch") as pbar:
-                for inputs, labels in pbar:
-                    inputs, labels = inputs.to(self.device), labels.to(self.device)
 
-                    outputs = self.model(inputs)
+        with torch.no_grad():
+            if self.rank == 0:
+                print(f"test num: {len(self.test_loader)}")
+            pbar = tqdm(self.test_loader, desc="Testing", unit="batch", disable=self.device != 'cuda:0' and is_DDP)
+            for data_dict in pbar:
+                img_inputs, lm_inputs, labels = data_dict.values()
+                data_dict = {key: value.to(self.device) for key, value in data_dict.items()}
+                img_inputs, lm_inputs, labels = img_inputs.to(self.device), lm_inputs.to(self.device), labels.to(
+                    self.device)
+
+                if self.model_class == 'DFACLIP':
+                    pred_dict = self.model(data_dict)
+                    outputs = pred_dict['cls']
+                    loss_dict = self._get_raw_model().get_losses(data_dict, pred_dict)
+                    loss = loss_dict['overall']
+                    if loss.isnan().any():
+                        print(f"Rank {self.device}: NaN detected in loss")
+                        print(pred_dict)
+                else:
+                    outputs = self.model(img_inputs)
                     loss = self.criterion(outputs, labels)
 
-                    all_true.append(labels.cpu().numpy())
-                    all_pred.append(torch.argmax(outputs, dim=1).cpu().numpy())
-                    all_prob.append(outputs.cpu().numpy())
+                all_true.append(labels.cpu())
+                all_pred.append(torch.argmax(outputs.data, dim=1).cpu())
+                all_prob.append(outputs.data.cpu())
 
-                    running_loss += loss.item()
-                    _, predicted = torch.max(outputs.data, 1)
-                    total += labels.size(0)
-                    correct += (predicted == labels).sum().item()
-                    # 实时更新进度条信息
-                    pbar.set_postfix({
-                        'loss': running_loss / (pbar.n + 1e-5),
-                        'acc': 100 * correct / total
-                    }, refresh=False)
+                running_loss += loss.item()
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+                pbar.set_postfix({
+                    'loss': running_loss / (pbar.n + 1e-5),
+                    'acc': 100 * correct / total
+                }, refresh=False)
+
+        # 使用 torch.cat 拼接张量
+        all_true = torch.cat(all_true, dim=0).cpu().numpy()
+        all_pred = torch.cat(all_pred, dim=0).cpu().numpy()
+        all_prob = torch.cat(all_prob, dim=0).cpu().numpy()
         epoch_loss = running_loss / len(self.test_loader)
         epoch_acc = 100 * correct / total
         self.history['test_loss'].append(epoch_loss)
@@ -107,21 +201,24 @@ class Trainer:
 
         all_true_flat = np.array(all_true).flatten()
         all_pred_flat = np.array(all_pred).flatten()
-        # print(f"all_true[:5]:{all_true[:5]}")
-        # print(f"all_pred[:5]:{all_pred[:5]}")
-        # print(f"all_true_single[:5]:{all_true_flat[:5]}")
-        # print(f"all_pred_single[:5]:{all_pred_flat[:5]}")
 
         cm = confusion_matrix(all_true_flat, all_pred_flat)
-        print(cm)
+        if self.device == 'cuda:0':
+            print("Confusion Matrix:\n", cm)
         precision = precision_score(all_true_flat, all_pred_flat, average='macro')
-        # print(f"Precision: {precision}")
         recall = recall_score(all_true_flat, all_pred_flat, average='macro')
-        # print(f"Recall: {recall}")
-
-        fpr, tpr, _ = roc_curve(all_true_flat, all_pred_flat)  # 二分类问题
+        fpr, tpr, _ = roc_curve(all_true_flat, all_prob[:, 1], pos_label=1)
         roc_auc = auc(fpr, tpr)
         test_f1 = f1_score(all_true_flat, all_pred_flat, average='macro')
+
+        img_names = self.test_loader.dataset.data_dict['image']
+        if type(img_names[0]) is not list:
+            # calculate video-level auc for the frame-level methods.
+            v_auc, _ = self.get_video_metrics(img_names, all_pred_flat, all_true_flat)
+        else:
+            # video-level methods
+            v_auc = roc_auc
+
         dic = {
             'loss': epoch_loss,
             'acc': epoch_acc,
@@ -130,17 +227,56 @@ class Trainer:
             'roc_auc': roc_auc,
             'test_f1': test_f1,
             'cm': cm,
+            'video_auc': v_auc
         }
 
-        # 在test_epoch方法中添加
-        if epoch_acc >= max(self.history['test_acc']):
-            # 后续保存到特定文件夹中
+        if self.device == 'cuda:0':
+            print("Keys in state_dict before saving:", list(self.model.state_dict().keys()))
+        model_path = EXP_DIR + '/' + f'best_{self._get_raw_model()._get_name()}_model.pth'
+        if (self.device == 'cuda:0' or is_DDP == False) and (
+                len(self.history['test_acc']) == 0 or epoch_acc >= max(self.history['test_acc'])):
             print(f"save the best model success")
-            model_path = f'{EXP_DIR}/best_{MODEL_CLASS}_model_acc{epoch_acc}.pth'
-            torch.save(self.model.state_dict(), model_path)
-        else:
-            model_path = 'sorry'
-        return dic, model_path,
+            torch.save(self._get_raw_model().state_dict(), model_path)
+        return dic, model_path
+
+    def get_video_metrics(self, image, pred, label):
+        result_dict = {}
+        new_label = []
+        new_pred = []
+        # print(image[0])
+        # print(pred.shape)
+        # print(label.shape)
+        for item in np.transpose(np.stack((image, pred, label)), (1, 0)):
+
+            s = item[0]
+            if '\\' in s:
+                parts = s.split('\\')
+            else:
+                parts = s.split('/')
+            a = parts[-2]
+            b = parts[-1]
+
+            if a not in result_dict:
+                result_dict[a] = []
+
+            result_dict[a].append(item)
+        image_arr = list(result_dict.values())
+
+        for video in image_arr:
+            pred_sum = 0
+            label_sum = 0
+            leng = 0
+            for frame in video:
+                pred_sum += float(frame[1])
+                label_sum += int(frame[2])
+                leng += 1
+            new_pred.append(pred_sum / leng)
+            new_label.append(int(label_sum / leng))
+        fpr, tpr, thresholds = metrics.roc_curve(new_label, new_pred, pos_label=1)
+        v_auc = metrics.auc(fpr, tpr)
+        fnr = 1 - tpr
+        v_eer = fpr[np.nanargmin(np.absolute((fnr - fpr)))]
+        return v_auc, v_eer
 
     def plot_or_save_history(self):
         # 绘制损失曲线

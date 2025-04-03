@@ -11,7 +11,13 @@ project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
 # 将项目根目录添加到 sys.path
 sys.path.insert(0, project_root)
 def load_model(model_class, device):
-    module = importlib.import_module(f"src.models.{model_class}")
+    # module = importlib.import_module(f"src.models.{model_class}")
+    if model_class == "DFACLIP":
+        # 特殊处理 DFACLIP 的路径
+        module = importlib.import_module("src.models.DFACLIP.DFACLIP")
+    else:
+        # 其他模型的路径
+        module = importlib.import_module(f"src.models.{model_class}")
     model = getattr(module, model_class)()
     model.to(device)
     return model

@@ -4,8 +4,15 @@
 # csv文件上传一次即可
 *.csv
 
+__pycache__/
+*.pyc
+
 # 忽略日志文件
 src/logs/
+
+weights
+
+experiments
 
 # 忽略数据集文件
 dataset/
@@ -13,5 +20,10 @@ dataset/
 # 忽略Python虚拟环境
 venv/
 
+.vscode/
+.idea/
+*.sublime-*
+
+.env
 
 

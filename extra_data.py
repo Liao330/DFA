@@ -11,8 +11,10 @@ import pandas as pd
 
 # 配置参数
 root_dir = r"E:\github_code\Unnamed1\dataset\processed"  # 数据集根目录
-output_csv = r"E:\github_code\Unnamed1\global_labels.csv"  # 输出CSV文件路径
+# output_csv = r"E:\github_code\Unnamed1\new_global_labels.csv"  # 输出CSV文件路径
 # output_csv = r"E:\github_code\Unnamed1\DFDC_labels.csv"  # 输出CSV文件路径
+# output_csv = r"E:\github_code\Unnamed1\Celeb-DF-v1_labels.csv"  # 输出CSV文件路径
+
 output_txt = r"E:\github_code\Unnamed1\different_dataset_photos_nums.txt"  # 输出TXT文件路径
 
 
@@ -26,7 +28,7 @@ def process_dataset(root_dir, output_csv, output_txt, current_dataset):
 
         # 如果文件不存在或为空，写入表头
         if not file_exists:
-            writer.writerow(['path', 'label'])  # 写入列头
+            writer.writerow(['img', 'landmark', 'label'])  # 写入列头
         else:
             print("CSV文件已存在，跳过写入列头。")
 
@@ -43,7 +45,7 @@ def process_dataset(root_dir, output_csv, output_txt, current_dataset):
                     # 转换路径格式（保留从"dataset"开始的部分）
                     relative_path = full_path.split("dataset")[-1]
                     formatted_path = os.path.join("dataset", relative_path.strip("\\/")).replace("\\", "/")
-
+                    landmark_path = formatted_path.replace('frames', 'landmarks').replace('.png', '.npy')
                     # 根据父目录确定标签
                     if "original_sequences" in full_path:
                         label = "REAL"
@@ -75,7 +77,7 @@ def process_dataset(root_dir, output_csv, output_txt, current_dataset):
                         label = "UNKNOWN"  # 安全兜底
 
                     # 写入CSV
-                    writer.writerow([formatted_path, label])
+                    writer.writerow([formatted_path, landmark_path, label])
 
                     # 更新子目录下的图片数量
                     subdir = os.path.relpath(root, root_dir)
@@ -149,23 +151,25 @@ def process_DFDC():
         })
 
         # 保存为新的 CSV 文件
-        new_df.to_csv('new_labels.csv', index=False)
-        print("新的CSV文件已生成，文件名为 'new_labels.csv'")
+        new_df.to_csv('DFDC_labels.csv', index=False)
+        print("新的CSV文件已生成，文件名为 'DFDC_labels.csv'")
     else:
         print("Error: new_labels 的长度与 df_origin['path'] 的长度不一致，请检查代码逻辑。")
 
 
 # 数据集 没有DFDC 因为拿DFDC做测试集
 # list = ['UADFV'] # DFDC用于测试泛化能力 'UADFV',
-# list = ['Celeb-DF-v1','Celeb-DF-v2','DFDCP','FaceForensics++']
-# for current_dataset in list:
-#     print(f"\n正在处理数据集{current_dataset}")
-#     current_dir = root_dir + '\\' + current_dataset
-#     print(current_dir)
-#     # 执行处理
-#     process_dataset(current_dir, output_csv, output_txt, current_dataset)
+list = ['Celeb-DF-v1','Celeb-DF-v2','DFDCP','FaceForensics++']
+# list = ['Celeb-DF-v1']
+for current_dataset in list:
+    output_csv = fr"E:\github_code\Unnamed1\{current_dataset}_labels.csv"  # 输出CSV文件路径
+    print(f"\n正在处理数据集{current_dataset}")
+    current_dir = root_dir + '\\' + current_dataset
+    print(current_dir)
+    # 执行处理
+    process_dataset(current_dir, output_csv, output_txt, current_dataset)
 
 # process_DFDC()
-process_dataset(r"E:\github_code\Unnamed1\dataset\processed\UADFV", r"E:\github_code\Unnamed1\UADFV_labels.csv", None, None)
+# process_dataset(r"E:\github_code\Unnamed1\dataset\processed\UADFV", r"E:\github_code\Unnamed1\UADFV_labels.csv", None, None)
 
 

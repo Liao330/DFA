@@ -303,6 +303,10 @@ def main():
             # transform=train_transform,
         )
 
+    real, fake = test_data.num_of_real_and_fake()
+    print(f"Real:{real}")
+    print(f"Fake:{fake}")
+
     test_loader = DataLoader(
         test_data,
         batch_size=BATCH_SIZE,

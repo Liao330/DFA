@@ -165,13 +165,13 @@ def test_epoch(model, test_loader):
 
     cm = confusion_matrix(all_true_flat, all_pred_flat)
     precision = average_precision_score(all_true_flat, all_pred_flat)
-    recall = recall_score(all_true_flat, all_pred_flat, average='macro')
+    recall = recall_score(all_true_flat, all_pred_flat, pos_label=1)
     fpr, tpr, _ = roc_curve(all_true_flat, all_prob[:, 1], pos_label=1)
     roc_auc = auc(fpr, tpr)
     # eer
     fnr = 1 - tpr
     eer = fpr[np.nanargmin(np.absolute((fnr - fpr)))]
-    test_f1 = f1_score(all_true_flat, all_pred_flat, average='macro')
+    test_f1 = f1_score(all_true_flat, all_pred_flat, pos_label=1)
 
     img_names = test_loader.dataset.data_dict['image']
     if type(img_names[0]) is not list:
@@ -197,7 +197,7 @@ def test_epoch(model, test_loader):
     return dic
 
 
-def visualize_results(model_class, dic, class_names=None, save_path=f'{EXP_DIR}/test_results.png'):
+def visualize_results(model_class, test_dataset, dic, class_names=None, save_path=f'{EXP_DIR}/test_results.png'):
     """
     可视化测试结果
     参数：
@@ -232,7 +232,7 @@ def visualize_results(model_class, dic, class_names=None, save_path=f'{EXP_DIR}/
     table.set_fontsize(14)
     table.scale(1, 2)
     ax0.axis('off')
-    ax0.set_title(f'{model_class} Performance Summary', fontsize=16, pad=20)
+    ax0.set_title(f'{model_class} on {test_dataset} Performance Summary', fontsize=16, pad=20)
 
     # 混淆矩阵
     ax1 = plt.subplot(gs[0, 1:])
@@ -328,7 +328,7 @@ def main():
     dic = test_epoch(model, test_loader)
     # 添加可视化调用
     class_names = ['Real', 'Fake']  # 根据实际类别修改
-    visualize_results(model_class, dic, class_names=class_names)
+    visualize_results(model_class, test_dataset, dic, class_names=class_names)
 
     print_pretty_results(dic, class_names)
 

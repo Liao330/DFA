@@ -211,13 +211,14 @@ class Trainer:
         roc_auc = auc(fpr, tpr)
         test_f1 = f1_score(all_true_flat, all_pred_flat, average='macro')
 
-        img_names = self.test_loader.dataset.data_dict['image']
-        if type(img_names[0]) is not list:
-            # calculate video-level auc for the frame-level methods.
-            v_auc, _ = self.get_video_metrics(img_names, all_pred_flat, all_true_flat)
-        else:
-            # video-level methods
-            v_auc = roc_auc
+        # img_names = self.test_loader.dataset.data_dict['image']
+        # if type(img_names[0]) is not list:
+        #     # calculate video-level auc for the frame-level methods.
+        #     v_auc, _ = self.get_video_metrics(img_names, all_pred_flat, all_true_flat)
+        # else:
+        #     # video-level methods
+        #     v_auc = roc_auc
+        v_auc = 1111111111111111
 
         dic = {
             'loss': epoch_loss,

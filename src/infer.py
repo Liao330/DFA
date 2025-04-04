@@ -63,6 +63,8 @@ def infer(rank, model_class, val_loader, model_path):
     fpr, tpr, _ = roc_curve(all_true_flat, all_prob[:, 1], pos_label=1)
     roc_auc = auc(fpr, tpr)
     test_f1 = f1_score(all_true_flat, all_pred_flat, average='macro')
+    video_auc = 1111111111111111111
+
     dic = {
         'acc': epoch_acc,
         'precision': precision,
@@ -70,6 +72,7 @@ def infer(rank, model_class, val_loader, model_path):
         'roc_auc': roc_auc,
         'test_f1': test_f1,
         'cm': cm,
+        'video_auc': video_auc,
     }
     print('===> Infer Done!')
     return dic

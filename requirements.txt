@@ -12,7 +12,12 @@ scikit_learn==1.6.1
 seaborn==0.13.2
 setuptools==75.8.2
 timm==1.0.15
-torch==2.6.0+cu126
-torchvision==0.21.0+cu126
+
+# torch==2.6.0+cu126
+# torchvision==0.21.0+cu126
+# torch torchvision torchaudio手动进行安装 需根据自己电脑显卡版本进行替换末尾cuxxx
+# pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu126
+
+tensorboard==2.19.0
 tqdm==4.67.1
 transformers==4.49.0

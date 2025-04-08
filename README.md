@@ -41,18 +41,25 @@ export CUDA_VISIBLE_DEVICES=0
 python -m src.main --model_class=DFACLIP
 ```
 
-
-
-
-
 #### 测试某一数据集
 
-python -m src.test --model_class=DFACLIP --test_dataset=xxxx
+```
+python -m src.test --model_class=DFACLIP --test_dataset=your—dataset
+如: python -m src.test --model_class=DFACLIP --test_dataset=DFDC
+```
 
+#### 消融实验
 
+```
+python -m src.ablation  --test_dataset=your—dataset(默认是全部)
+如: python -m src.ablation --test_dataset=DFDC
+```
 
 
 
 ### todo
 
-按数据集名进行训练、测试
+- 按不同数据集进行训练、测试（已完成）
+- 用于消融实验的继承类设计
+- DFD数据集处理
+- 

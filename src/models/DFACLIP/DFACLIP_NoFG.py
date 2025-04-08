@@ -1,6 +1,8 @@
-from src.models.DFACLIP.DFACLIP import DFACLIP
 from src.models.DFACLIP.interactive_fusion import Interactive_fusion_classifier
+import torch
+import torch.nn.functional as F
 
+from src.models.DFACLIP.DFACLIP import DFACLIP
 
 class DFACLIP_NoFG(DFACLIP):
     def __init__(self, mode='video'):

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from src.config import BATCH_SIZE
 from src.models.DFACLIP.DFACLIP import DFACLIP
 
 
@@ -19,10 +20,14 @@ class DFACLIP_NoGlobal(DFACLIP):
 
         # 提取 CLIP 特征，但跳过 GlobalContextAdapter
         clip_features = self.clip_model.extract_features(clip_images, self.GlobalContextAdapter.fusion_map.values())
-        clip_output, clip_fmp = self.rec_attn_clip(data_dict, clip_features, None, inference, normalize=True) # attn_biases is None
+        # attn_biases = torch.zeros([BATCH_SIZE, 16, 128, 16, 16]).cuda()
+        attn_biases = None
+        clip_output, clip_fmp = self.rec_attn_clip(data_dict, clip_features, attn_biases, inference, normalize=True) # attn_biases is zero
 
         # 正常执行 FacialGuidance 和 IFC
         guide_fmp, guide_preds, mask = self.facialguidance(clip_images, landmarks)
+        # guide_fmp, guide_preds, mask = self.LandmarkGuidedAdapter(clip_images, landmarks)
+
         fusion_preds = self.interactive_fusion_classifier(clip_fmp, guide_fmp)
         clip_cls_output = self.clip_post_process(clip_output.float())
 

@@ -18,9 +18,10 @@ from tabulate import tabulate
 
 parser = argparse.ArgumentParser(description="Train a model")
 parser.add_argument('--model_class', type=str, help='The class name of the model to train')
-parser.add_argument('--test_dataset', type=str, help='The dataset of the model to test')
+parser.add_argument('--test_datasets', type=str, default="Celeb-DF-v1,Celeb-DF-v2,DFDC,DFDCP", help='The dataset of the model to test')
 # --test_dataset
 args = parser.parse_args()
+dataset_names = args.test_datasets.split(',')
 
 
 def print_pretty_results(dic, class_names):
@@ -289,34 +290,21 @@ def visualize_results(model_class, test_dataset, dic, class_names=None, save_pat
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
+def load_dataset(dataset_name):
+    csv_path = f'{dataset_name}_labels.csv'
+    print(f'===> Load {csv_path} start!')
+    test_data = TestDataset(data_root=DATA_ROOT, csv_path=csv_path)
+    real, fake = test_data.num_of_real_and_fake()
+    print(f"Real: {real}")
+    print(f"Fake: {fake}")
+    test_loader = DataLoader(test_data, batch_size=BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS,
+                             pin_memory=True, drop_last=False, collate_fn=BaseDataset.collate_fn)
+    print(f'===> Load {csv_path} done!')
+    return test_loader
+
 def main():
 
     init_seed()
-
-    test_dataset = f'{args.test_dataset}_labels.csv'
-    print(f'===> Load {test_dataset} start!')
-
-    test_data = TestDataset(
-            data_root=DATA_ROOT,
-            csv_path=test_dataset,
-            # csv_path=TEST_DATASET,
-            # transform=train_transform,
-        )
-
-    real, fake = test_data.num_of_real_and_fake()
-    print(f"Real:{real}")
-    print(f"Fake:{fake}")
-
-    test_loader = DataLoader(
-        test_data,
-        batch_size=BATCH_SIZE,
-        shuffle=False,
-        num_workers=NUM_WORKERS,
-        pin_memory=True,
-        drop_last=False,
-        collate_fn=BaseDataset.collate_fn
-    )
-    print(f'===> Load {test_dataset} done!')
 
     model_class = args.model_class
     model = load_model(model_class, DEVICE)
@@ -324,13 +312,17 @@ def main():
     model.load_state_dict(torch.load(model_weights_path, map_location=DEVICE), strict=False)
 
     print(f'===> Load {model_weights_path} done!')
+    for dataset_name in dataset_names:
+        test_loader = load_dataset(dataset_name)
 
-    dic = test_epoch(model, test_loader)
-    # 添加可视化调用
-    class_names = ['Real', 'Fake']  # 根据实际类别修改
-    visualize_results(model_class, test_dataset, dic, class_names=class_names)
 
-    print_pretty_results(dic, class_names)
+
+        dic = test_epoch(model, test_loader)
+        # 添加可视化调用
+        class_names = ['Real', 'Fake']  # 根据实际类别修改
+        # visualize_results(model_class, test_dataset, dic, class_names=class_names)
+
+        print_pretty_results(dic, class_names)
 
 if __name__ == '__main__':
     main()

@@ -20,7 +20,7 @@ class ConvNext(nn.Module):
         self.linear1 = nn.Linear(1536, num_classes)
         self.avgpool = nn.AdaptiveAvgPool2d(1)
 
-    def forward(self, x):
+    def forward(self, x, inference=False):
         batch_size, c, h, w = x.shape
         #print("111",x.shape) #[64,  3, 224, 224]
         fmap = self.model(x)
@@ -31,8 +31,13 @@ class ConvNext(nn.Module):
         # print("555", x.shape) # [64, 2048]
         # x_lstm, _ = self.lstm(x, None)
         # print("666", x_lstm.shape) #[4, 60, 1536]
-        outs = self.dp(self.linear1(x)) # [64, 2]
-        return outs
+        logits = self.dp(self.linear1(x)) # [64, 2]
+        if inference:
+            return {
+                'logits': logits,
+                'features': x  # 返回中间特征用于 T-SNE
+            }
+        return logits
 
 # model = ConvNext().cuda()
 # inputs = torch.randn(64,3,224,224).cuda()

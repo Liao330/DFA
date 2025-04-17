@@ -6,6 +6,7 @@ from PIL import Image
 import pandas as pd
 import albumentations as A
 from torchvision import transforms as T
+from ..config import LABEL_MAP
 
 
 class BaseDataset(Dataset):
@@ -26,7 +27,7 @@ class BaseDataset(Dataset):
             }
         }
         self.mode = mode
-        self.label_map = {"REAL": 1, "FAKE": 0}
+        self.label_map = LABEL_MAP
         self._load_metadata(csv_path)
 
     def _load_metadata(self, csv_path):

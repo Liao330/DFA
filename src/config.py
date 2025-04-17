@@ -5,9 +5,12 @@ import torch
 # 判断操作系统类型
 if os.name == "nt":  # Windows
     NUM_WORKERS = 0
+    is_DALI = False  # windows can not use nvidia_dali
     MODEL_DOWNLOAD_ROOT = r"E:\github_code\Unnamed1\weights"
 elif os.name == "posix":  # Linux 或 macOS
-    NUM_WORKERS = 8
+    NUM_WORKERS = 16
+    # is_DALI = True  # use nvidia_dali
+    is_DALI = False  # not use nvidia_dali
     MODEL_DOWNLOAD_ROOT = r"/8lab/lljjff/Unnamed/weights"
 
 GPU_COUNT = torch.cuda.device_count()
@@ -22,6 +25,7 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 NUM_CLASS = 2
 SEED = 706
 USE_GPU_NUM = min(1, GPU_COUNT)
+LABEL_MAP = {"REAL": 0, "FAKE": 1}
 
 if USE_GPU_NUM > 1:
     is_DDP = True
@@ -29,8 +33,8 @@ else:
     is_DDP = False
 
 # 模型配置
-MODEL_CLASS = 'Unknow' # 与src/models中的文件名保持一致
-NUM_EPOCHS = 1
+MODEL_CLASS = 'DFACLIP' # 与src/models中的文件名保持一致
+NUM_EPOCHS = 6
 
 # 训练配置
 WEIGHTS = torch.tensor([1.0, 5.6]).to(DEVICE)

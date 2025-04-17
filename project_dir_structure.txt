@@ -17,6 +17,7 @@ DFA-project/
 │   ├── config.py       # 配置信息
 │   └── fullcode.py     # 完整训练代码
 │
+├── extra_data.py        # 生成数据集的csv文件
 ├── requirements.txt     # Python 依赖
 ├── environment.yml      # Conda 环境配置
 └── .gitignore           # 排除大文件/临时文件

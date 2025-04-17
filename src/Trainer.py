@@ -5,7 +5,7 @@ import torch
 from sklearn import metrics
 from sklearn.metrics import confusion_matrix, roc_curve, auc, f1_score, precision_score, recall_score
 from tqdm import tqdm
-from src.config import EXP_DIR, WEIGHTS, CRITERION, SEED, GPU_COUNT, LEARNING_RATE, is_DDP
+from src.config import EXP_DIR, WEIGHTS, CRITERION, SEED, GPU_COUNT, LEARNING_RATE, is_DDP, is_DALI
 from src.utils.visualize import plot_loss_curve, plot_acc_curve, plot_confusion_matrix, plot_f1_score, plot_roc
 
 
@@ -50,16 +50,33 @@ class Trainer:
             return self.model.module
         return self.model
 
+    def _unify_data_format(self, data_dict):
+        if is_DALI:
+            # DALI 返回的是一个列表，列表中每个元素是一个字典，包含张量
+            dali_output = data_dict[0]  # DALIGenericIterator 返回的批次数据
+            image = dali_output["image"]
+            landmark = dali_output["landmark"] if "landmark" in dali_output else torch.zeros(
+                image.shape[0], 81, 2, device=self.device
+            )
+            label = dali_output["label"]
+            return {
+                "image": image,
+                "landmark": landmark,
+                "label": label
+            }
+        else:
+            return data_dict
+
     def train_epoch(self):
         self.model.train()
         running_loss = 0.0
         correct = 0
         total = 0
         total_batches = len(self.train_loader)
-        test_points = [0.50, 1.0]
+        test_points = [1.0]
         tested_points = set()
         test_metrics = {}
-
+        model_path = ''
         scaler = torch.amp.GradScaler(self.device)
 
         # 在 DDP 模式下，只在 rank 0 显示进度条
@@ -67,7 +84,6 @@ class Trainer:
         for batch_idx, data_dict in enumerate(pbar):
             # print(f"Rank {self.device}: Processing batch {batch_idx + 1}/{total_batches}")
             progress = (batch_idx + 1) / total_batches
-
             for point in test_points:
                 if progress >= point and point not in tested_points:
                     print(f"\nRank {self.device}: Reached {point * 100}% progress, running test...")
@@ -85,15 +101,11 @@ class Trainer:
 
             self.model.train()
 
-            img_inputs, lm_inputs, labels = data_dict.values()
+            # 统一DALI和普通模式的数据结构
+            data_dict = self._unify_data_format(data_dict)
+
             data_dict = {key: value.to(self.device) for key, value in data_dict.items()}
-            img_inputs, lm_inputs, labels = img_inputs.to(self.device), lm_inputs.to(self.device), labels.to(
-                self.device)
-            # print(
-            #     f"Rank {self.device}: Data loaded: img_inputs shape {img_inputs.shape}, lm_inputs shape {lm_inputs.shape}, labels shape {labels.shape}")
-            # data_dict = {key: value.to(self.device) for key, value in data_dict.items()}
-            # img_inputs, lm_inputs, labels = img_inputs.to(self.device), lm_inputs.to(self.device), labels.to(
-            #     self.device)
+            img_inputs, lm_inputs, labels = data_dict["image"], data_dict["landmark"], data_dict["label"]
 
             if torch.isnan(img_inputs).any() or torch.isinf(img_inputs).any():
                 print(f"Rank {self.device}: Warning: NaN or Inf detected in images")

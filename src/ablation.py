@@ -124,8 +124,6 @@ def save_metrics_to_file(filename, dataset_name, model_name, metrics):
         f.write("\n")
 
 models = {
-    "Only Global": load_model('DFACLIP_OnlyGlobal', DEVICE),
-    "Only FG": load_model('DFACLIP_OnlyFG', DEVICE),
     "No Global": load_model('DFACLIP_NoGlobal', DEVICE),
     "No FG": load_model('DFACLIP_NoFG', DEVICE),
     "No IFC": load_model('DFACLIP_NoIFC', DEVICE),

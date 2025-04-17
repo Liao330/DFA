@@ -29,24 +29,11 @@ def get_dataloader(rank, world_size):
         csv_path=DATASET_PATH,
         # transform=train_transform,
     )
-    # infer_data = BaseDataset(
-    #     data_root=DATA_ROOT,
-    #     csv_path=INFER_DATASET,
-    #     # transform=train_transform,
-    # )
-    # DFDC_train_data, DFDC_test_data = get_infer_data(infer_data)
-    # 划分数据集
-    # train_size = int(0.8 * len(custom_data))
-    # test_size = len(custom_data) - train_size
-    # # 随机划分数据集
-    # train_dataset, test_dataset = random_split(
-    #     custom_data, [train_size, test_size]
-    # )
     total_size = len(custom_data)
 
     # 计算训练集、验证集和测试集的大小
-    train_size = int(0.7 * total_size)  # 训练集占70%
-    val_size = int(0.1 * total_size)  # 验证集占10%
+    train_size = int(0.8 * total_size)  # 训练集占80%
+    val_size = int(0 * total_size)  # 验证集占0% no val
     test_size = total_size - train_size - val_size  # 测试集占剩余的20%
 
     # 随机划分数据集

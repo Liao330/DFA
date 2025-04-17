@@ -121,10 +121,11 @@ def main():
                 save_epoch_results(epoch, train_loss, train_acc, test_loss, test_acc, precision, recall, roc_auc, test_f1, cm, video_auc)
 
         if rank == 0:
-            print(f"the save model path is :{model_path}")
-            infer_dic = infer(rank,model_class, val_loader, model_path)
-            infer_acc, precision, recall, roc_auc, infer_f1, cm, video_auc = infer_dic.values()
-            save_infer_results(infer_acc, precision, recall, roc_auc, infer_f1, cm, video_auc)
+            # print(f"the save model path is :{model_path}")
+            # infer_dic = infer(rank,model_class, val_loader, model_path)
+            # infer_acc, precision, recall, roc_auc, infer_f1, cm, video_auc = infer_dic.values()
+            # save_infer_results(infer_acc, precision, recall, roc_auc, infer_f1, cm, video_auc)
+            pass
 
         if rank == 0:
             save_exp_plot(trainer)

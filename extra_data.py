@@ -28,14 +28,17 @@ def process_dataset(root_dir, output_csv, output_txt, current_dataset):
 
         # 如果文件不存在或为空，写入表头
         if not file_exists:
-            writer.writerow(['img', 'landmark', 'label'])  # 写入列头
+            if current_dataset == 'FaceForensics++':
+                writer.writerow(['img', 'landmark', 'masks', 'label'])  # 写入列头
+            else:
+                writer.writerow(['img', 'landmark', 'label'])  # 写入列头
         else:
             print("CSV文件已存在，跳过写入列头。")
 
         # 初始化字典记录每个子目录下的图片数量
         photos_nums = {}
 
-        # 遍历所有子目录 DFDC FF++
+        # 遍历所有子目录
         for root, dirs, files in os.walk(root_dir):
             for file in files:
                 if file.lower().endswith('.png'):
@@ -46,6 +49,7 @@ def process_dataset(root_dir, output_csv, output_txt, current_dataset):
                     relative_path = full_path.split("dataset")[-1]
                     formatted_path = os.path.join("dataset", relative_path.strip("\\/")).replace("\\", "/")
                     landmark_path = formatted_path.replace('frames', 'landmarks').replace('.png', '.npy')
+                    mask_path = formatted_path.replace('frames', 'mask')
                     # 根据父目录确定标签
                     if "original_sequences" in full_path:
                         label = "REAL"
@@ -77,7 +81,10 @@ def process_dataset(root_dir, output_csv, output_txt, current_dataset):
                         label = "UNKNOWN"  # 安全兜底
 
                     # 写入CSV
-                    writer.writerow([formatted_path, landmark_path, label])
+                    if current_dataset == 'FaceForensics++':
+                        writer.writerow([formatted_path, landmark_path, mask_path, label])
+                    else:
+                        writer.writerow([formatted_path, landmark_path, label])
 
                     # 更新子目录下的图片数量
                     subdir = os.path.relpath(root, root_dir)
@@ -159,7 +166,8 @@ def process_DFDC():
 
 # 数据集 没有DFDC 因为拿DFDC做测试集
 # list = ['UADFV'] # DFDC用于测试泛化能力 'UADFV',
-list = ['Celeb-DF-v1','Celeb-DF-v2','DFDCP','FaceForensics++']
+# list = ['Celeb-DF-v1','Celeb-DF-v2','DFDCP','FaceForensics++']
+list = ['FaceForensics++']
 # list = ['Celeb-DF-v1']
 for current_dataset in list:
     output_csv = fr"E:\github_code\Unnamed1\{current_dataset}_labels.csv"  # 输出CSV文件路径

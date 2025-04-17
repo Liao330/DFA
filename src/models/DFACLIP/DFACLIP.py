@@ -177,7 +177,11 @@ class DFACLIP(nn.Module):
 
         # print(f"clip_fmp: {clip_fmp.shape}") # [B, 385, 1024] 没问题
         # print(f"guide_fmp: {guide_fmp.shape}") # [B, 2048, 14, 14] 原来是--》[B, 2048, 7, 7]
-        fusion_preds = self.interactive_fusion_classifier(clip_fmp, guide_fmp) # [B, 2]
+        fusion_preds = self.interactive_fusion_classifier(clip_fmp, guide_fmp, return_features=True) # [B, 2]
+        if isinstance(fusion_preds, tuple):
+            fusion_preds, fused_features = fusion_preds
+        else:
+            fused_features = None
 
         # print(f"clip_output:{clip_output.shape}") # [1, 128, 768]
         clip_cls_output = self.clip_post_process(clip_output.float()) # [B, 2]
@@ -192,14 +196,15 @@ class DFACLIP(nn.Module):
         w_global, w_guide, w_fusion = weights[0], weights[1], weights[2]
 
         pred_dict = {
-            'cls': fusion_preds.float(), # 效果不好的话换成guide_preds 在loss中的权重也对应调高
+            'cls': fusion_preds.float(),
             # 'prob': prob,
             'global_preds': clip_cls_output.float(), # [B, 2]
-            'guide_preds': guide_preds.float(), # [B, 2]
+            'guide_preds': guide_preds.float(), # [B, 2]  这个负作用
             'fusion_preds': fusion_preds.float(),
             'mask': mask,  # 用于可视化
             'clip_fmp': clip_fmp,
             'guide_fmp': guide_fmp,
+            'features': fused_features,
             'w_global': w_global,
             'w_guide': w_guide,
             'w_fusion': w_fusion

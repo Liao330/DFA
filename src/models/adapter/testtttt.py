@@ -7,7 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torchvision.transforms import transforms
 
-from src.models.DFACLIP.DFACLIP import DFDACLIP
+from src.models.DFACLIP.DFACLIP import DFACLIP
 from src.utils.visualize import  single_res_fmap_heatmap, single_clip_fmap_heatmap
 
 # 设置环境变量
@@ -66,7 +66,9 @@ def visualize_mask(image, mask, alpha=0.5):
 
 
 # 测试
-image_path = r'E:\github_code\Unnamed1\dataset\processed\Celeb-DF-v1\YouTube-real\frames\00010\339.png'
+# image_path = r'E:\github_code\Unnamed1\dataset\processed\Celeb-DF-v2\Celeb-synthesis\frames\id1_id3_0001\113.png'
+image_path = r'E:\github_code\Unnamed1\dataset\processed\Celeb-DF-v2\Celeb-real\frames\id0_0002\022.png'
+
 image = cv2.imread(image_path)
 image_mask = image
 image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -77,7 +79,9 @@ to_tensor = transforms.Compose([
 image_tensor = to_tensor(image).cuda()
 image_mask = to_tensor(image_mask).cuda()
 
-landmarks_path = r'E:\github_code\Unnamed1\dataset\processed\Celeb-DF-v1\YouTube-real\landmarks\00010\339.npy'
+# landmarks_path = r'E:\github_code\Unnamed1\dataset\processed\Celeb-DF-v2\Celeb-synthesis\landmarks\id1_id3_0001\113.npy'
+landmarks_path = r'E:\github_code\Unnamed1\dataset\processed\Celeb-DF-v2\Celeb-real\landmarks\id0_0002\022.npy'
+
 landmarks = np.load(landmarks_path)
 landmarks_tensor = torch.from_numpy(landmarks).float()
 
@@ -94,11 +98,13 @@ data_dict = {
     'landmark': landmarks_tensor.unsqueeze(0).cuda()
 }
 # 手动生成 mask
-generator = DFDACLIP().cuda()
+model = DFACLIP().cuda()
+# model_weights_path = r"E:\github_code\Unnamed1\weights\best_DFACLIP_model.pth"
+# model.load_state_dict(torch.load(model_weights_path, map_location='cuda'), strict=False)
 # generator.load_state_dict(torch.load(r'E:\github_code\Unnamed1\weights\best_DFDACLIP_model_acc87.9703042715038.pth'))
 # print(generator)
 # mask = generator.LandmarkGuidedAdapter.mask_generator(landmarks_tensor.unsqueeze(0).cuda())  # [1, 4, 14, 14]
-dict = generator(data_dict)
+dict = model(data_dict)
 mask, guide_preds, global_preds, guide_fmp, clip_fmp = dict['mask'], dict['guide_preds'], dict['global_preds'] ,dict['guide_fmp'], dict['clip_fmp']
 # print("Mask sum:", mask.sum(dim=0))
 

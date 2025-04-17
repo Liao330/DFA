@@ -1,18 +1,22 @@
-deep-learning-project/
-├── data/                 # 数据目录（空目录，通过符号链接或外部工具管理）
+DFA-project/
+├── data/                 # 数据目录
 │   ├── raw/             # 原始数据（不提交到 Git）
 │   └── processed/       # 处理后的数据（不提交到 Git）
-├── models/              # 训练好的模型权重（用 Git LFS 或外部存储）
+│
+├── experiments/         # 实验记录（每次实验的子目录，不提交）
+│   └── exp_model_name_20230801/    # 实验日期或 ID
+│
 ├── src/                 # 核心代码
-│   ├── data_loader.py   # 数据加载与预处理
-│   ├── model.py         # 模型架构定义
-│   ├── train.py         # 训练脚本
-│   └── eval.py          # 评估脚本
-├── experiments/         # 实验记录（每次实验的子目录）
-│   └── exp_20230801/    # 实验日期或 ID
-│       ├── config.yaml  # 超参数配置
-│       └── metrics.json # 评估结果
+│   ├── data/           # 数据加载与预处理
+│   ├── utils/          # 工具函数
+│   ├── models/         # 模型类
+│   ├── ablation.py     # 消融实验
+│   ├── main.py         # 训练脚本
+│   ├── test.py         # 测试脚本
+│   ├── Trainer.py      # 封装训练代码
+│   ├── config.py       # 配置信息
+│   └── fullcode.py     # 完整训练代码
+│
 ├── requirements.txt     # Python 依赖
 ├── environment.yml      # Conda 环境配置
-├── Dockerfile           # 容器化配置（可选）
 └── .gitignore           # 排除大文件/临时文件

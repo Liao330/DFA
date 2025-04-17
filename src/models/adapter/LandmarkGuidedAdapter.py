@@ -69,8 +69,8 @@ class LandmarkGuidedAdapter(nn.Module):
         self.mask_generator = LandmarkMaskGenerator(mask_size=mask_size, num_channels=num_channels)
         self.weight_predictor = MaskWeightPredictor(in_dim=dim, num_channels=num_channels)
         self.pool = nn.AdaptiveAvgPool2d(1)
-        self.resnext = models.resnext50_32x4d(weights=models.ResNeXt50_32X4D_Weights.IMAGENET1K_V1).cuda()
-        self.extra_feature = nn.Sequential(*list(self.resnext.children())[:-2])
+        self.visual_backbone = models.resnext50_32x4d(weights=models.ResNeXt50_32X4D_Weights.IMAGENET1K_V1).cuda()
+        self.extra_feature = nn.Sequential(*list(self.visual_backbone.children())[:-2])
         self.dp = nn.Dropout(0.4)
         self.linear1 = nn.Linear(2048, num_classes)
 

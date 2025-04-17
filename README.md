@@ -34,12 +34,16 @@ torchrun --nproc_per_node=4 src/main.py --model_class=DFACLIP
 ```
 
 #### 单机单卡
-
+###### 训练DFACLIP
 即use_gpu_num <= 1
 
 ```
 export CUDA_VISIBLE_DEVICES=0
 python -m src.main --model_class=DFACLIP
+```
+###### 训练各种模型
+```
+sh train_together.sh
 ```
 
 #### 测试某一数据集

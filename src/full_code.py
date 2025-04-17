@@ -1,3 +1,7 @@
+"""
+  最早版本的full code，后续不再使用 已废弃
+"""
+
 import os
 
 import torch

@@ -24,76 +24,12 @@ class ClipIntraBlock(nn.Module):
         intra_x = self.conv_first(intra_x)  # N D 256
         intra_x = self.relu(intra_x)
         intra_x = intra_x.permute(0, 2, 1)  # NDL-> NLD
-        # if not inference:
-        #     loss_clip = self.intra_contra(intra_x, data_dict['clip_patch_label'], data_dict['label'], (16, 16))
-        # else:
-        #     loss_clip = 0
         intra_x = intra_x.permute(0, 2, 1)  # NLD-> NDL
         intra_x = self.conv_second(intra_x)  # NDL
-        # intra_x = self.relu(intra_x)
 
         intra_x = intra_x.permute(2, 0, 1)  # NDL- >LND
-        # x LND
-        # x[-clip_L:,...] = intra_x * 0.1 + x[-clip_L:, ...] * self.intra_scale 在B14 效果不错
-        # x[-clip_L:, ...] = intra_x * self.intra_scale + x[-clip_L:, ...] * 0.9
-        #x[-clip_L:, ...] = intra_x * 0.15 + x[-clip_L:, ...] * 0.95
-        # return intra_x, loss_clip
-        # print(intra_x.shape) # [256, 8, 1024]
         return intra_x
 
-    # def intra_contra(self, x, patch_labels, image_labels, spatial_shape):
-    #     if True:
-    #         L = spatial_shape[0] * spatial_shape[1]  # 14 * 14 = 196  16 * 16=256
-    #
-    #         embeddings = x[:, -L:, ...]  # (N 196 192) (NLD) (N 256 128)
-    #         embeddings = nn.functional.normalize(embeddings, dim=-1)
-    #         fake_index = (image_labels == 1).nonzero(as_tuple=True)[0]
-    #         fake_embeddings = embeddings[fake_index]  # f_N L D
-    #
-    #         ff_patch_labels = patch_labels[fake_index]  # f_N L
-    #         fr_patch_labels = torch.logical_not(ff_patch_labels)
-    #
-    #         f_fake_part = fake_embeddings * ff_patch_labels.unsqueeze(-1)  # f_N L D *  f_N L 1 -> f_N L D
-    #         f_real_part = fake_embeddings * fr_patch_labels.unsqueeze(-1)  # f_N L D *  f_N L 1 -> f_N L D
-    #
-    #         negative = torch.bmm(f_fake_part, f_real_part.permute(0, 2, 1)) / 0.5  # f_N L L
-    #         positive1 = torch.bmm(f_real_part, f_real_part.permute(0, 2, 1)) / 0.5 # f_N L L
-    #         l_neg = torch.sum(torch.exp(negative))
-    #
-    #         l_pos1 = torch.sum(torch.exp(positive1))
-    #         loss_real_intra = -torch.log(l_pos1 / (l_neg + l_pos1))
-    #         #---------------fake----------------------
-    #         positive2 = torch.bmm(f_fake_part, f_fake_part.permute(0, 2, 1)) / 0.5 # f_N L L
-    #         l_pos2 = torch.sum(torch.exp(positive2))
-    #         loss_fake_intra = -torch.log(l_pos2 / (l_neg + l_pos2))
-    #         #loss_intra = loss_fake_intra + loss_real_intra
-    #         loss_intra =  loss_real_intra
-    #
-    #         real_index = (image_labels == 0).nonzero(as_tuple=True)[0]
-    #         real_nums = len(real_index)
-    #         if real_nums != 0 :
-    #             real_embeddings = embeddings[real_index]  # N r_L D
-    #             fake_nums = len(fake_index)
-    #             if fake_nums >= real_nums:
-    #                 random_fake_index = torch.randperm(fake_nums)[:real_nums]
-    #                 random_fake_embeddings = fake_embeddings[random_fake_index]
-    #                 real_neg = torch.bmm(real_embeddings, random_fake_embeddings.permute(0, 2, 1)) / 0.5
-    #                 real_pos = torch.bmm(real_embeddings, real_embeddings.permute(0, 2, 1)) / 0.5
-    #
-    #             else:
-    #                 random_real_index = torch.randperm(real_nums)[:fake_nums]
-    #                 random_real_embeddings = real_embeddings[random_real_index]
-    #                 real_neg = torch.bmm(random_real_embeddings, fake_embeddings.permute(0, 2, 1)) / 0.5
-    #                 real_pos = torch.bmm(random_real_embeddings, random_real_embeddings.permute(0, 2, 1)) / 0.5
-    #             loss_real_neg = torch.sum(torch.exp(real_neg))
-    #             loss_real_pos = torch.sum(torch.exp(real_pos))
-    #             loss_inter = -torch.log(loss_real_pos / (loss_real_pos + loss_real_neg))
-    #             loss_clip = loss_inter  + loss_intra
-    #
-    #         else:
-    #             loss_clip = loss_intra
-    #
-    #     return loss_clip
 
 
 class RecAttnClip(nn.Module):

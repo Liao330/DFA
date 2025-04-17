@@ -5,7 +5,6 @@ from .clip.clip import load
 import torch
 
 from .interactive_fusion import Interactive_fusion_classifier
-from ..adapter.FacialGuidance import FacialGuidance
 from ..adapter.LandmarkGuidedAdapter import LandmarkGuidedAdapter
 from ..adapter.adapter import Adapter
 from .attn import RecAttnClip
@@ -31,13 +30,9 @@ class DFACLIP(nn.Module):
         super().__init__()
         self.device = device
         self.clip_model, self.processor = load(clip_name, device=device,download_root=MODEL_DOWNLOAD_ROOT)
-        # 全局伪造适配器
         self.GlobalContextAdapter = Adapter(vit_name=adapter_vit_name, num_quires=num_quires+60, fusion_map=fusion_map, mlp_dim=mlp_dim,
                                mlp_out_dim=mlp_out_dim, head_num=head_num, device=self.device)
-        # landmark引导适配器
         self.LandmarkGuidedAdapter = LandmarkGuidedAdapter(dim=768, mask_size=14, num_channels=10)
-        # FG使用CrossAttention
-        self.facialguidance = FacialGuidance()
 
         self.rec_attn_clip = RecAttnClip(self.clip_model.visual, num_quires,device=self.device)  # 全部参数被冻结
         self.masked_xray_post_process = MaskPostXrayProcess(in_c=num_quires).to(self.device)
@@ -99,13 +94,6 @@ class DFACLIP(nn.Module):
         }
         return loss_dict
 
-    # def get_train_metrics(self, data_dict, pred_dict):
-    #     label = data_dict['label']
-    #     pred = pred_dict['cls']
-    #     auc, eer, acc, ap = calculate_metrics_for_train(label.detach(), pred.detach())
-    #     metric_batch_dict = {'acc': acc, 'auc': auc, 'eer': eer, 'ap': ap}
-    #     return metric_batch_dict
-
     def get_test_metrics(self):
         y_pred = np.concatenate(self.prob)
         y_true = np.concatenate(self.label)
@@ -136,61 +124,20 @@ class DFACLIP(nn.Module):
 
 
         clip_features = self.clip_model.extract_features(clip_images, self.GlobalContextAdapter.fusion_map.values())
-        # print(self.GlobalContextAdapter.fusion_map.values()) #· dict_values([1, 8, 15])
-        # print(f"clip_features:{clip_features.shape}") #  'dict' object has no attribute 'shape'
-        # print(f"clip_features:{clip_features[1].shape} {clip_features[8].shape} {clip_features[15].shape}")
-        #torch.Size([32, 256, 1024]) torch.Size([32, 256, 1024]) torch.Size([32, 256, 1024])
-
         attn_biases = self.GlobalContextAdapter(data_dict, clip_features, inference)
-        # print(attn_biases[0].shape, xray_preds[0].shape) # (N Head D h w)  (N Q h w)
-        # torch.Size([32, 16, 128, 16, 16]) torch.Size([32, 128, 16, 16])
         clip_output, clip_fmp = self.rec_attn_clip(data_dict, clip_features, attn_biases[-1], inference, normalize=True)
-        # print(f"clip_output:{clip_output.shape}") # [B, 196-68, 768]
-        # print(clip_fmp.shape) # [8, 385, 1024]
-        # landmark融合部分
-        # f_lfa = self.LandmarkFocusAdapter(clip_output, landmarks) # # [B, 768]
-        # # print(f"f_lfa:{f_lfa.shape}") # [B, 768]
-        #
-        # cilp_pool = self.pool(clip_output.permute(0,2,1))
-        # # print(f"cilp_pool:{cilp_pool.shape}") # [B, 768, 1]
-        # landmark_final = torch.cat([cilp_pool.squeeze(-1), f_lfa], dim=-1)
-        # # print(f"landmark_final:{landmark_final.shape}") # [B, 1536]
-        # landmark_final = self.pool3(landmark_final)
-        # data_dict['if_boundary'] = data_dict['if_boundary'].to(self.device)
-        # xray_preds = [self.masked_xray_post_process(xray_pred, data_dict['if_boundary']) for xray_pred in xray_preds]
-        # xray_preds = [self.masked_xray_post_process(xray_pred) for xray_pred in xray_preds]
-        # # print(xray_preds[-1].shape) # [B, 1, 256, 256]
-        #
-        # clip_output = self.pool2(clip_output.permute(0, 2, 1))  # [B, 768, 196] -> [B, 768, 128]
-        # clip_output = clip_output.permute(0, 2, 1)  # [B, 768, 128] -> [B, 128, 768]
-        # cls_output = self.clip_post_process(clip_output.float()).squeeze()  # N 2
-        # # print(cls_output.shape) # [B, 2]
 
         # landmark引导部分
-        # cilp_pool = self.pool(clip_output.permute(0,2,1)).squeeze(-1) # [B, 768]
-        # guide_fmp, guide_preds, mask = self.LandmarkGuidedAdapter(clip_images, landmarks)  # [B, 2048, 7, 7] [B, 2] [B, 10, 14, 14]
-        # landmark_final = torch.cat([cilp_pool, f_guided], dim=-1)  # [B, 1536]
-        # cls_output = self.classifier(landmark_final)  # [B, 2]
+        cilp_pool = self.pool(clip_output.permute(0,2,1)).squeeze(-1) # [B, 768]
+        guide_fmp, guide_preds, mask = self.LandmarkGuidedAdapter(clip_images, landmarks)  # [B, 2048, 7, 7] [B, 2] [B, 10, 14, 14]
 
-        # 使用FG
-        guide_fmp, guide_preds, mask = self.facialguidance(clip_images, landmarks)  # [B, 2048, 7, 7] [B, 2] [B, 10, 14, 14]
-
-        # print(f"clip_fmp: {clip_fmp.shape}") # [B, 385, 1024] 没问题
-        # print(f"guide_fmp: {guide_fmp.shape}") # [B, 2048, 14, 14] 原来是--》[B, 2048, 7, 7]
         fusion_preds = self.interactive_fusion_classifier(clip_fmp, guide_fmp, return_features=True) # [B, 2]
         if isinstance(fusion_preds, tuple):
             fusion_preds, fused_features = fusion_preds
         else:
             fused_features = None
 
-        # print(f"clip_output:{clip_output.shape}") # [1, 128, 768]
         clip_cls_output = self.clip_post_process(clip_output.float()) # [B, 2]
-        # print(f"clip_cls_output.shape: {clip_cls_output.shape}") # [1, 2]
-        # cls_output = torch.cat([guide_preds])
-
-        # print(xray_preds[-1].shape) # [B, 1, 256, 256])
-        # prob = torch.softmax(cls_output, dim=1)[:, 1]
-
         # 归一化权重
         weights = torch.softmax(torch.stack([self.w_global, self.w_guide, self.w_fusion]), dim=0)
         w_global, w_guide, w_fusion = weights[0], weights[1], weights[2]

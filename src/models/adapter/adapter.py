@@ -1,14 +1,8 @@
-"""
-    待拟标题：DeepFake Forensics Adapter
-    对landmark特征的提取
-    已知landmark张量形状[81, 2] landmarks: [batch_size, 81, 2]
-"""
 import torch
 from torch import nn
 from timm import create_model
 from torch.nn import functional as F
 from ..DFACLIP.layer import Fusion, MLP, PatchEmbed, VT_LN
-# from models.layer import Fusion, MLP, PatchEmbed, VT_LN
 from functools import partial
 
 
@@ -74,9 +68,7 @@ class Adapter(nn.Module):
         if block_idx in self.fusion_map.keys():
             clip_layer = self.fusion_map[block_idx]
             adapter_layer = block_idx
-            # print(f"clip_layer:{clip_layer}") # 1 8 15
             clip_dim = clip_features[clip_layer].shape[2]  # clip features NLD
-            # print(f"clip_dim:{clip_dim}") # 1024
             fusion = Fusion(clip_dim, self.num_features).to(self.device)
             L = spatial_shape[0] * spatial_shape[1]
             x = torch.cat(
@@ -89,47 +81,11 @@ class Adapter(nn.Module):
             )
             return x
 
-    # def intra_contra(self, block_idx, x, patch_labels, image_labels, spatial_shape):
-    #     loss = 0
-    #     if block_idx == 4 or block_idx == 5 or block_idx == 6 :
-    #         L = spatial_shape[0] * spatial_shape[1]  # 14 * 14 = 196
-    #
-    #         embeddings = x[:, -L:, ...]  # (N 196 192) (NLD)
-    #         embeddings = nn.functional.normalize(embeddings, dim=-1)
-    #         fake_index = (image_labels == 1).nonzero(as_tuple=True)[0]
-    #         fake_embeddings = embeddings[fake_index]  # f_N L D
-    #         fake_nums = len(fake_index)
-    #
-    #         ff_patch_labels = patch_labels[fake_index]  # f_N L
-    #
-    #
-    #         fr_patch_labels = torch.logical_not(ff_patch_labels)
-    #
-    #         f_fake_part = fake_embeddings * ff_patch_labels.unsqueeze(-1)  # f_N L D *  f_N L 1 -> f_N L D
-    #         f_real_part = fake_embeddings * fr_patch_labels.unsqueeze(-1)  # f_N L D *  f_N L 1 -> f_N L D
-    #
-    #         negative = torch.bmm(f_fake_part, f_real_part.permute(0, 2, 1)) / 0.5  # f_N L L
-    #         positive1 = torch.bmm(f_real_part, f_real_part.permute(0, 2, 1)) / 0.5  # f_N L L
-    #         positive2 = torch.bmm(f_fake_part, f_fake_part.permute(0, 2, 1)) / 0.5  # f_N L L
-    #
-    #         l_neg = torch.sum(torch.exp(negative))
-    #         l_pos1 = torch.sum(torch.exp(positive1))
-    #         l_pos2 = torch.sum(torch.exp(positive2))
-    #
-    #         loss_real_intra = -torch.log(l_pos1 / (l_neg + l_pos1))
-    #         loss_fake_intra = -torch.log(l_pos2 / (l_neg + l_pos2))
-    #
-    #
-    #         #loss = loss_real_intra + loss_fake_intra
-    #         loss = loss_real_intra
-    #
-    #     return loss
 
     def forward(self, data_dict, clip_features, inference):
 
         image = data_dict['image']
         x = self.patch_conv(image)
-        # print(x.shape) # [1, 192, 16, 16]
         x = x.reshape(x.shape[0], x.shape[1], -1)
         x = x.permute(0, 2, 1)
 
@@ -139,31 +95,20 @@ class Adapter(nn.Module):
                                   size=(16, 16),
                                   mode='bilinear',
                                   align_corners=False).reshape(pos_embed.shape[0],pos_embed.shape[1],256).permute(0,2,1) #NDL->NLD
-        # print(pos_embed.shape) # [1, 256, 192]
         pos_embed = torch.cat([self.query_pos_embed.expand(pos_embed.shape[0], -1, -1), pos_embed], dim=1)
-        # print(pos_embed.shape) # [1, 384, 192]
         v_L = x.shape[1] + 60  # vision token L 196 + 60 = 256
         (h, w) = 16,16  # h w 16,16
 
-        # print(x.shape) # [64, 196, 192]
         x = torch.cat([self.query_embed.expand(x.shape[0], -1, -1), x], dim=1)  # (N ,Q_L+L,D)
-        # print(x.shape) # [64, 324, 192]
         x = x + pos_embed
         x = self.ln_pre(x)
         outs = []
         out_layers = [8]
         loss_intra = 0
-        # self.fuse(0, x, clip_features, (h, w))
         for i, block in enumerate(self.vit_model.blocks, start=1):  # total 1-12 ,only use 1-8
             x = block(x)  # (N, Q_L+L, D)
-            # print(x.shape) # [32, 384, 192]
             if i in self.fusion_map.keys():
                 x = self.fuse(i, x, clip_features, (h, w))
-                # print(x.shape) # [32, 384, 192]
-            # if not inference:  #train
-            #     # loss_tmp_intra = self.intra_contra(i, x, data_dict['patch_label'], data_dict['label'], (h, w))
-            #     loss_tmp_intra = self.intra_contra(i, x, data_dict['label'], (h, w))
-            #     loss_intra = loss_tmp_intra + loss_intra if loss_tmp_intra != 0 else loss_intra
             if i in out_layers:
                 n, _, d = x.shape
                 outs.append(
@@ -185,5 +130,4 @@ class Adapter(nn.Module):
             xray_preds.append(xray_pred)
             attn_biases.append(attn_bias)
 
-        # return attn_biases, xray_preds, loss_intra
         return attn_biases

@@ -84,11 +84,4 @@ class LandmarkGuidedAdapter(nn.Module):
         landmarks = landmarks.float()
         B = clip_features.size(0)
         mask = self.mask_generator(landmarks)
-        # f_clip_global = clip_features.mean(dim=1)
-        # weights = self.weight_predictor(f_clip_global)
-        # weighted_mask = mask * weights.view(B, -1, 1, 1)
-        # f_clip = clip_features.view(B, 14, 14, 768).permute(0, 3, 1, 2)
-        # guided_f = f_clip.unsqueeze(2) * weighted_mask.unsqueeze(1)
-        # guided_f = guided_f.sum(dim=2)
-        # guided_f = self.pool(guided_f).view(B, -1)
         return fmap, outs, mask # [B, 2048, 7, 7] [B, 2], [B, 10, 14, 14]

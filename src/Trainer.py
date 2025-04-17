@@ -223,6 +223,7 @@ class Trainer:
         roc_auc = auc(fpr, tpr)
         test_f1 = f1_score(all_true_flat, all_pred_flat, average='macro')
 
+        # 下面代码有bug 暂时不在训练时计算v_auc
         # img_names = self.test_loader.dataset.data_dict['image']
         # if type(img_names[0]) is not list:
         #     # calculate video-level auc for the frame-level methods.

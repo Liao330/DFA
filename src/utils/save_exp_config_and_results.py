@@ -121,13 +121,6 @@ def save_history_values(trainer:Trainer):
     with open(result_path, 'w') as f:
         f.write(history_str)
 
-# def save_train_epoch_results(epoch, train_loss, train_acc):
-#     # 保存实验结果
-#     result_path = os.path.join(EXP_DIR, "results.txt")
-#     with open(result_path, "a") as f:
-#         f.write(f"{'-'*22} EPOCH: {epoch + 1} {'-'*22}\n")
-#         f.write(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}%\n")
-#         f.write("-" * 50 + '\n')
 
 
 def save_epoch_results(epoch, train_loss, train_acc, test_loss, test_acc, precision, recall, roc_auc, test_f1, cm, video_auc):

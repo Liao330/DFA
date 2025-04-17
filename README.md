@@ -62,5 +62,6 @@ python -m src.ablation  --test_dataset=your—dataset(默认是全部)
 
 - 按不同数据集进行训练、测试（已完成）
 - 用于消融实验的继承类设计（已完成）
+- 使用DALI框架（失败）
 - DFD数据集处理
 - 

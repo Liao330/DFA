@@ -1,3 +1,16 @@
+# Deepfake Forensics Adapter (DFA)
+
+This repository is the official implementation of the paper:
+
+**[Deepfake Forensics Adapter: A Dual-Stream Network for Generalizable Deepfake Detection](https://arxiv.org/abs/2603.01450)**
+
+> **Paper**: [https://arxiv.org/abs/2603.01450](https://arxiv.org/abs/2603.01450)
+
+> **Authors**: Jianfeng Liao, Yichen Wei, Raymond Chan Ching Bon, Shulan Wang, Kam-Pui Chow, Kwok-Yan Lam
+
+> **Venue**: Accepted at **ICDF2C 2025**.
+
+
 ### 安装
 
 #### conda
@@ -99,8 +112,22 @@ python -m src.ablation  --test_dataset=your—dataset(默认是全部)
 --来自百度网盘超级会员v4的分享
 ```
 
-### todo
 
-- 按不同数据集进行训练、测试（已完成）
-- 用于消融实验的继承类设计（已完成）
-- 使用DALI框架（失败）
+
+## 📖 Citation
+
+If you find this work useful for your research, please cite the original paper:
+```bibtex
+@article{liao2026deepfake,
+  title     = {Deepfake Forensics Adapter: A Dual-Stream Network for Generalizable Deepfake Detection},
+  author    = {Jianfeng Liao and Yichen Wei and Raymond Chan Ching Bon and Shulan Wang and Kam-Pui Chow and Kwok-Yan Lam},
+  journal   = {Proceedings of the International Conference on Digital Forensics and Cyber Crime (ICDF2C)}, 
+  year      = {2025},
+  note      = {To appear},
+  archivePrefix = {arXiv},
+  eprint    = {2603.01450},
+  primaryClass = {cs.CV},
+  doi       = {10.48550/arXiv.2603.01450},
+  url       = {https://arxiv.org/abs/2603.01450}
+}
+```

@@ -108,8 +108,8 @@ python -m src.ablation  --test_dataset=your—dataset(默认是全部)
 
 ```
 通过网盘分享的文件：weights
-链接: https://pan.baidu.com/s/1QSZhR0tqc_1_rMx7NcLVzg?pwd=sztu 提取码: sztu 
---来自百度网盘超级会员v4的分享
+链接: https://pan.baidu.com/s/1l_qkNl3hCWhHTSyH-5EaDg?pwd=y8su 提取码: y8su 
+--来自百度网盘超级会员v5的分享
 ```
 
 
